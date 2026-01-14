@@ -1,5 +1,0 @@
-Host condenser
-  HostName ssh.condenser.arc.ucl.ac.uk
-  User cloud-user
-  CertificateFile ~/.ssh/comp0235_signed_key
-  IdentityFile ~/.ssh/comp0235
