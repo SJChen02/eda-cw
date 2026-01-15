@@ -1,0 +1,7 @@
+---
+- name: Configure host node
+  hosts: host
+  become: yes
+  roles:
+    - host
+
