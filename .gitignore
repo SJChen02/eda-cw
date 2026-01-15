@@ -1,0 +1,7 @@
+build_cluster/.terraform/
+build_cluster/terraform.tfstate
+build_cluster/terraform.tfstate.backup
+build_cluster/.terraform.lock.hcl
+
+*.swp
+*~
