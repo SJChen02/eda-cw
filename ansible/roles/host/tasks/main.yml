@@ -1,0 +1,44 @@
+---
+# Install RabbitMQ on the host node
+
+- name: Add RabbitMQ Erlang repository
+  copy:
+    dest: /etc/yum.repos.d/rabbitmq_erlang.repo
+    content: |
+      [rabbitmq_erlang]
+      name=RabbitMQ Erlang
+      baseurl=https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-erlang/rpm/el/9/$basearch
+      repo_gpgcheck=1
+      gpgcheck=1
+      enabled=1
+      gpgkey=https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-erlang/gpg.key
+
+- name: Add RabbitMQ Server repository
+  copy:
+    dest: /etc/yum.repos.d/rabbitmq_server.repo
+    content: |
+      [rabbitmq_server]
+      name=RabbitMQ Server
+      baseurl=https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-server/rpm/el/9/$basearch
+      repo_gpgcheck=1
+      gpgcheck=1
+      enabled=1
+      gpgkey=https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-server/gpg.key
+
+- name: Install RabbitMQ server
+  dnf:
+    name: rabbitmq-server
+    state: present
+    update_cache: yes
+
+- name: Enable and start RabbitMQ
+  systemd:
+    name: rabbitmq-server
+    enabled: yes
+    state: started
+
+- name: Enable RabbitMQ management plugin
+  shell: rabbitmq-plugins enable --offline rabbitmq_management
+  args:
+    creates: /var/lib/rabbitmq/mnesia/rabbit@*
+
