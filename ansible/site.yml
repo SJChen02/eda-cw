@@ -1,7 +1,13 @@
 ---
-- name: Configure host node
+- name: Configure RabbitMQ host
   hosts: host
   become: yes
   roles:
     - host
+
+- name: Configure Celery workers
+  hosts: workers
+  become: yes
+  roles:
+    - workers
 

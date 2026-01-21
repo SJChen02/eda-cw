@@ -1,5 +1,5 @@
 ---
-# Install RabbitMQ (official Erlang + RabbitMQ repos)
+# roles/host/tasks/main.yml
 
 - name: Install RabbitMQ and Erlang repositories
   copy:
@@ -88,6 +88,29 @@
 
 - name: Enable RabbitMQ management UI
   command: rabbitmq-plugins enable rabbitmq_management
-  args:
-    creates: /var/lib/rabbitmq/mnesia
+  register: mgmt_res
+  changed_when: "'Plugin configuration changed' in mgmt_res.stdout"
+  failed_when: mgmt_res.rc != 0 and ('already enabled' not in (mgmt_res.stdout | lower))
+
+- name: Restart RabbitMQ if management UI changed
+  systemd:
+    name: rabbitmq-server
+    state: restarted
+  when: mgmt_res is changed
+
+# Create celery vhost/user (so you don't rely on guest/guest remotely)
+- name: Create celery vhost
+  command: rabbitmqctl add_vhost /celery
+  register: vhost_res
+  failed_when: vhost_res.rc not in [0, 70]
+  changed_when: vhost_res.rc == 0
+
+- name: Create celery user
+  command: rabbitmqctl add_user celery celerypass
+  register: user_res
+  failed_when: user_res.rc not in [0, 70]
+  changed_when: user_res.rc == 0
+
+- name: Set permissions for celery user
+  command: rabbitmqctl set_permissions -p /celery celery ".*" ".*" ".*"
 
