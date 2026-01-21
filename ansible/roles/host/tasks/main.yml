@@ -1,29 +1,78 @@
 ---
-# Install RabbitMQ on the host node
+# Install RabbitMQ (official Erlang + RabbitMQ repos)
 
-- name: Add RabbitMQ Erlang repository
+- name: Install RabbitMQ and Erlang repositories
   copy:
-    dest: /etc/yum.repos.d/rabbitmq_erlang.repo
+    dest: /etc/yum.repos.d/rabbitmq.repo
     content: |
-      [rabbitmq_erlang]
-      name=RabbitMQ Erlang
-      baseurl=https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-erlang/rpm/el/9/$basearch
+      ##
+      ## Erlang (RabbitMQ runtime)
+      ##
+      [modern-erlang]
+      name=modern-erlang-el9
+      baseurl=https://yum1.rabbitmq.com/erlang/el/9/$basearch
+              https://yum2.rabbitmq.com/erlang/el/9/$basearch
       repo_gpgcheck=1
-      gpgcheck=1
       enabled=1
-      gpgkey=https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-erlang/gpg.key
+      gpgkey=https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key
+      gpgcheck=1
+      sslverify=1
+      sslcacert=/etc/pki/tls/certs/ca-bundle.crt
+      metadata_expire=300
+      pkg_gpgcheck=1
+      autorefresh=1
+      type=rpm-md
 
-- name: Add RabbitMQ Server repository
-  copy:
-    dest: /etc/yum.repos.d/rabbitmq_server.repo
-    content: |
-      [rabbitmq_server]
-      name=RabbitMQ Server
-      baseurl=https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-server/rpm/el/9/$basearch
+      [modern-erlang-noarch]
+      name=modern-erlang-el9-noarch
+      baseurl=https://yum1.rabbitmq.com/erlang/el/9/noarch
+              https://yum2.rabbitmq.com/erlang/el/9/noarch
       repo_gpgcheck=1
-      gpgcheck=1
       enabled=1
-      gpgkey=https://dl.cloudsmith.io/public/rabbitmq/rabbitmq-server/gpg.key
+      gpgkey=https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-erlang.E495BB49CC4BBE5B.key
+             https://github.com/rabbitmq/signing-keys/releases/download/3.0/rabbitmq-release-signing-key.asc
+      gpgcheck=1
+      sslverify=1
+      sslcacert=/etc/pki/tls/certs/ca-bundle.crt
+      metadata_expire=300
+      pkg_gpgcheck=1
+      autorefresh=1
+      type=rpm-md
+
+      ##
+      ## RabbitMQ Server
+      ##
+      [rabbitmq-el9]
+      name=rabbitmq-el9
+      baseurl=https://yum2.rabbitmq.com/rabbitmq/el/9/$basearch
+              https://yum1.rabbitmq.com/rabbitmq/el/9/$basearch
+      repo_gpgcheck=1
+      enabled=1
+      gpgkey=https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-server.9F4587F226208342.key
+             https://github.com/rabbitmq/signing-keys/releases/download/3.0/rabbitmq-release-signing-key.asc
+      gpgcheck=1
+      sslverify=1
+      sslcacert=/etc/pki/tls/certs/ca-bundle.crt
+      metadata_expire=300
+      pkg_gpgcheck=1
+      autorefresh=1
+      type=rpm-md
+
+      [rabbitmq-el9-noarch]
+      name=rabbitmq-el9-noarch
+      baseurl=https://yum2.rabbitmq.com/rabbitmq/el/9/noarch
+              https://yum1.rabbitmq.com/rabbitmq/el/9/noarch
+      repo_gpgcheck=1
+      enabled=1
+      gpgkey=https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-server.9F4587F226208342.key
+             https://github.com/rabbitmq/signing-keys/releases/download/3.0/rabbitmq-release-signing-key.asc
+      gpgcheck=1
+      sslverify=1
+      sslcacert=/etc/pki/tls/certs/ca-bundle.crt
+      metadata_expire=300
+      pkg_gpgcheck=1
+      autorefresh=1
+      type=rpm-md
 
 - name: Install RabbitMQ server
   dnf:
@@ -37,8 +86,8 @@
     enabled: yes
     state: started
 
-- name: Enable RabbitMQ management plugin
-  shell: rabbitmq-plugins enable --offline rabbitmq_management
+- name: Enable RabbitMQ management UI
+  command: rabbitmq-plugins enable rabbitmq_management
   args:
-    creates: /var/lib/rabbitmq/mnesia/rabbit@*
+    creates: /var/lib/rabbitmq/mnesia
 
