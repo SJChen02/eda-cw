@@ -74,7 +74,7 @@
 
 - name: Copy protein FASTA to workers
   copy:
-    src: /eda-cw/proteome/UP000000589_10090.fasta
+    src: /home/almalinux/eda-cw/proteome/UP000000589_10090.fasta
     dest: /data/proteins/UP000000589_10090.fasta
     owner: almalinux
     group: almalinux
