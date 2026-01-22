@@ -64,3 +64,19 @@
     enabled: yes
     state: started
 
+- name: Create protein data directory
+  file:
+    path: /data/proteins
+    state: directory
+    owner: almalinux
+    group: almalinux
+    mode: "0755"
+
+- name: Copy protein FASTA to workers
+  copy:
+    src: /eda-cw/proteome/UP000000589_10090.fasta
+    dest: /data/proteins/UP000000589_10090.fasta
+    owner: almalinux
+    group: almalinux
+    mode: "0644"
+
