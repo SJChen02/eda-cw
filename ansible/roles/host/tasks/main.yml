@@ -44,8 +44,8 @@
       ##
       [rabbitmq-el9]
       name=rabbitmq-el9
-      baseurl=https://yum2.rabbitmq.com/rabbitmq/el/9/$basearch
-              https://yum1.rabbitmq.com/rabbitmq/el/9/$basearch
+      baseurl=https://yum1.rabbitmq.com/rabbitmq/el/9/$basearch
+              https://yum2.rabbitmq.com/rabbitmq/el/9/$basearch
       repo_gpgcheck=1
       enabled=1
       gpgkey=https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-server.9F4587F226208342.key
@@ -57,46 +57,37 @@
       pkg_gpgcheck=1
       autorefresh=1
       type=rpm-md
-
-      [rabbitmq-el9-noarch]
-      name=rabbitmq-el9-noarch
-      baseurl=https://yum2.rabbitmq.com/rabbitmq/el/9/noarch
-              https://yum1.rabbitmq.com/rabbitmq/el/9/noarch
-      repo_gpgcheck=1
-      enabled=1
-      gpgkey=https://github.com/rabbitmq/signing-keys/releases/download/3.0/cloudsmith.rabbitmq-server.9F4587F226208342.key
-             https://github.com/rabbitmq/signing-keys/releases/download/3.0/rabbitmq-release-signing-key.asc
-      gpgcheck=1
-      sslverify=1
-      sslcacert=/etc/pki/tls/certs/ca-bundle.crt
-      metadata_expire=300
-      pkg_gpgcheck=1
-      autorefresh=1
-      type=rpm-md
+  become: true
 
 - name: Install RabbitMQ server
   dnf:
-    name: rabbitmq-server
+    name:
+      - erlang
+      - rabbitmq-server
     state: present
     update_cache: yes
+  become: true
 
 - name: Enable and start RabbitMQ
   systemd:
     name: rabbitmq-server
     enabled: yes
     state: started
+  become: true
 
 - name: Enable RabbitMQ management UI
   command: rabbitmq-plugins enable rabbitmq_management
   register: mgmt_res
   changed_when: "'Plugin configuration changed' in mgmt_res.stdout"
   failed_when: mgmt_res.rc != 0 and ('already enabled' not in (mgmt_res.stdout | lower))
+  become: true
 
 - name: Restart RabbitMQ if management UI changed
   systemd:
     name: rabbitmq-server
     state: restarted
   when: mgmt_res is changed
+  become: true
 
 # Create celery vhost/user (so you don't rely on guest/guest remotely)
 - name: Create celery vhost
@@ -104,13 +95,37 @@
   register: vhost_res
   failed_when: vhost_res.rc not in [0, 70]
   changed_when: vhost_res.rc == 0
+  become: true
 
 - name: Create celery user
   command: rabbitmqctl add_user celery celerypass
   register: user_res
   failed_when: user_res.rc not in [0, 70]
   changed_when: user_res.rc == 0
+  become: true
 
 - name: Set permissions for celery user
   command: rabbitmqctl set_permissions -p /celery celery ".*" ".*" ".*"
+  become: true
+
+
+# Admin user for RabbitMQ Management UI (separate from celery worker user)
+- name: Create RabbitMQ admin user
+  command: rabbitmqctl add_user admin 123
+  register: admin_user_res
+  failed_when: admin_user_res.rc not in [0, 70]
+  changed_when: admin_user_res.rc == 0
+  become: true
+
+- name: Tag RabbitMQ admin user as administrator
+  command: rabbitmqctl set_user_tags admin administrator
+  become: true
+
+- name: Set permissions for admin user on /
+  command: rabbitmqctl set_permissions -p / admin ".*" ".*" ".*"
+  become: true
+
+- name: Set permissions for admin user on /celery
+  command: rabbitmqctl set_permissions -p /celery admin ".*" ".*" ".*"
+  become: true
 
