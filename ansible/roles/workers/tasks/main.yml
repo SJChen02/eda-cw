@@ -6,14 +6,60 @@
     name:
       - python3
       - python3-pip
+      - git
+      - rsync
+      - tar
+      - gzip
     state: present
     update_cache: yes
 
-- name: Install Celery
+- name: Install Python packages (Celery + pipeline deps)
   pip:
-    name: celery
+    name:
+      - celery
+      - biopython
+      - numpy
+      - scipy
     executable: pip3
 
+# Where the pipeline code will live on each worker
+- name: Create pipeline directory
+  file:
+    path: /opt/protein_pipeline
+    state: directory
+    owner: almalinux
+    group: almalinux
+    mode: "0755"
+
+# Copy scripts from the Ansible controller (cw-host) to workers
+# IMPORTANT: src paths are on cw-host
+- name: Copy pipeline_script.py to workers
+  copy:
+    src: /home/almalinux/eda-cw/pipeline_script.py
+    dest: /opt/protein_pipeline/pipeline_script.py
+    owner: almalinux
+    group: almalinux
+    mode: "0755"
+
+- name: Copy results_parser.py to workers
+  copy:
+    src: /home/almalinux/eda-cw/results_parser.py
+    dest: /opt/protein_pipeline/results_parser.py
+    owner: almalinux
+    group: almalinux
+    mode: "0644"
+
+# (Optional) copy select_ids.py too if you use it on workers
+- name: Copy select_ids.py to workers
+  copy:
+    src: /home/almalinux/eda-cw/select_ids.py
+    dest: /opt/protein_pipeline/select_ids.py
+    owner: almalinux
+    group: almalinux
+    mode: "0644"
+  ignore_errors: yes
+
+# Keep your celery test app (or replace later with your real pipeline celery app)
 - name: Create app directory
   file:
     path: /opt/celery_test
@@ -34,6 +80,7 @@
       def add(x, y):
           return x + y
 
+# IMPORTANT: force concurrency=1 to avoid tmp.* collisions
 - name: Install systemd unit for celery worker
   copy:
     dest: /etc/systemd/system/celery-worker.service
@@ -47,7 +94,7 @@
       [Service]
       Type=simple
       WorkingDirectory=/opt/celery_test
-      ExecStart=/usr/bin/python3 -m celery -A celery_app worker --loglevel=INFO
+      ExecStart=/usr/bin/python3 -m celery -A celery_app worker --loglevel=INFO --concurrency=1
       Restart=always
       RestartSec=3
 
@@ -62,7 +109,7 @@
   systemd:
     name: celery-worker
     enabled: yes
-    state: started
+    state: restarted
 
 - name: Create protein data directory
   file:
@@ -79,4 +126,3 @@
     owner: almalinux
     group: almalinux
     mode: "0644"
-
