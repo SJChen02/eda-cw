@@ -89,6 +89,13 @@
   when: mgmt_res is changed
   become: true
 
+# Install celery
+- name: Install Celery on host (producer)
+  pip:
+    name: celery
+    executable: pip3
+  become: true
+
 # Create celery vhost/user (so you don't rely on guest/guest remotely)
 - name: Create celery vhost
   command: rabbitmqctl add_vhost /celery
