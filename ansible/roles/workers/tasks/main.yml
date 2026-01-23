@@ -35,7 +35,7 @@
 # IMPORTANT: src paths are on cw-host
 - name: Copy pipeline_script.py to workers
   copy:
-    src: /home/almalinux/eda-cw/pipeline_script.py
+    src: /home/almalinux/eda-cw/distributed/pipeline_script.py
     dest: /opt/protein_pipeline/pipeline_script.py
     owner: almalinux
     group: almalinux
@@ -43,7 +43,7 @@
 
 - name: Copy results_parser.py to workers
   copy:
-    src: /home/almalinux/eda-cw/results_parser.py
+    src: /home/almalinux/eda-cw/distributed/results_parser.py
     dest: /opt/protein_pipeline/results_parser.py
     owner: almalinux
     group: almalinux
@@ -52,33 +52,30 @@
 # (Optional) copy select_ids.py too if you use it on workers
 - name: Copy select_ids.py to workers
   copy:
-    src: /home/almalinux/eda-cw/select_ids.py
+    src: /home/almalinux/eda-cw/distributed/select_ids.py
     dest: /opt/protein_pipeline/select_ids.py
     owner: almalinux
     group: almalinux
     mode: "0644"
   ignore_errors: yes
 
-# Keep your celery test app (or replace later with your real pipeline celery app)
-- name: Create app directory
-  file:
-    path: /opt/celery_test
-    state: directory
-    mode: "0755"
+# Celery worker for the protein pipeline (receives tasks from RabbitMQ on the host)
 
-- name: Drop minimal celery app
+- name: Copy pipeline_tasks.py to workers (Celery task module)
   copy:
-    dest: /opt/celery_test/celery_app.py
+    src: /home/almalinux/eda-cw/distributed//pipeline_tasks.py
+    dest: /opt/protein_pipeline/pipeline_tasks.py
+    owner: almalinux
+    group: almalinux
+    mode: "0644"
+
+- name: Write protein-pipeline environment file on workers
+  copy:
+    dest: /etc/sysconfig/protein-pipeline
     mode: "0644"
     content: |
-      from celery import Celery
-
-      BROKER = "amqp://celery:celerypass@{{ groups['host'][0] }}:5672//celery"
-      app = Celery("test", broker=BROKER, backend="rpc://")
-
-      @app.task
-      def add(x, y):
-          return x + y
+      CELERY_BROKER_URL=amqp://celery:celerypass@{{ groups['host'][0] }}:5672/%2Fcelery
+      PIPELINE_DIR=/opt/protein_pipeline
 
 # IMPORTANT: force concurrency=1 to avoid tmp.* collisions
 - name: Install systemd unit for celery worker
@@ -93,8 +90,9 @@
 
       [Service]
       Type=simple
-      WorkingDirectory=/opt/celery_test
-      ExecStart=/usr/bin/python3 -m celery -A celery_app worker --loglevel=INFO --concurrency=1
+      WorkingDirectory=/opt/protein_pipeline
+      EnvironmentFile=/etc/sysconfig/protein-pipeline
+      ExecStart=/usr/bin/python3 -m celery -A pipeline_tasks worker --loglevel=INFO --concurrency=1
       Restart=always
       RestartSec=3
 
