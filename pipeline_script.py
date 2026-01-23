@@ -2,17 +2,27 @@ import sys
 from subprocess import Popen, PIPE
 from Bio import SeqIO
 import shutil
+import os
 
 """
 usage: python pipeline_script.py INPUT.fasta  
 approx 5min per analysis
 """
 
+# --- Configurable tool paths (override via environment variables) ---
+S4PRED_RUN = os.environ.get("S4PRED_RUN", "/opt/s4pred/run_model.py")
+HHSEARCH_BIN = os.environ.get("HHSEARCH_BIN", "/usr/bin/hhsearch")
+HHDB = os.environ.get("HHDB", "/data/hhdb/pdb70/pdb70")
+
+# CPU control (keep 1 by default)
+S4PRED_THREADS = os.environ.get("S4PRED_THREADS", "1")
+HHSEARCH_CPU = os.environ.get("HHSEARCH_CPU", "1")
+
 def run_parser(hhr_file):
     """
     Run the results_parser.py over the hhr file to produce the output summary
     """
-    cmd = ['python', './results_parser.py', hhr_file]
+    cmd = ['python3', './results_parser.py', hhr_file]
     print(f'STEP 4: RUNNING PARSER: {" ".join(cmd)}')
     p = Popen(cmd, stdin=PIPE,stdout=PIPE, stderr=PIPE)
     out, err = p.communicate()
@@ -22,11 +32,15 @@ def run_hhsearch(a3m_file):
     """
     Run HHSearch to produce the hhr file
     """
-    cmd = ['/home/dbuchan/Applications/hh-suite-3.3.0/build/bin/hhsearch',
-           '-i', a3m_file, '-cpu', '1', '-d', 
-           '/home/dbuchan/Data/hhdb/pdb70/pdb70']
+    cmd = [
+        HHSEARCH_BIN,
+        "-i", a3m_file,
+        "-cpu", str(HHSEARCH_CPU),
+        "-d", HHDB,
+        "-o", hhr_file,
+    ]
     print(f'STEP 3: RUNNING HHSEARCH: {" ".join(cmd)}')
-    p = Popen(cmd, stdin=PIPE,stdout=PIPE, stderr=PIPE)
+    p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
     out, err = p.communicate()
 
 def read_horiz(tmp_file, horiz_file, a3m_file):
@@ -52,8 +66,9 @@ def run_s4pred(input_file, out_file):
     """
     Runs the s4pred secondary structure predictor to produce the horiz file
     """
-    cmd = ['python3', '/home/dbuchan/Code/s4pred/run_model.py',
-           '-t', 'horiz', '-T', '1', input_file]
+    cmd = ['python3', S4PRED_RUN,
+        '-t', 'horiz', '-T', S4PRED_THREADS, input_file]
+
     print(f'STEP 1: RUNNING S4PRED: {" ".join(cmd)}')
     p = Popen(cmd, stdin=PIPE,stdout=PIPE, stderr=PIPE)
     out, err = p.communicate()
