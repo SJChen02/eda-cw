@@ -115,6 +115,39 @@
   command: rabbitmqctl set_permissions -p /celery celery ".*" ".*" ".*"
   become: true
 
+# Ensure celery vhost and user exists and set their permission
+- name: Ensure celery vhost exists
+  shell: rabbitmqctl add_vhost celery
+  register: add_vhost_result
+  failed_when: false
+  changed_when: "'created' in add_vhost_result.stdout"
+
+- name: Ensure celery user exists
+  shell: rabbitmqctl add_user celery celerypass
+  register: add_user_result
+  failed_when: false
+  changed_when: "'created' in add_user_result.stdout"
+
+- name: Set permissions for celery user on celery vhost
+  shell: rabbitmqctl set_permissions -p celery celery ".*" ".*" ".*"
+
+# Configure protein pipeline environment
+- name: Configure protein pipeline environment
+  copy:
+    dest: /etc/sysconfig/protein-pipeline
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      CELERY_BROKER_URL=amqp://celery:celerypass@localhost:5672//celery
+      PIPELINE_DIR=/opt/protein_pipeline
+
+#clean up old vhost
+- name: Remove wrong /celery vhost if exists
+  shell: rabbitmqctl delete_vhost /celery
+  failed_when: false
+
+
 # Admin user for RabbitMQ Management UI (separate from celery worker user)
 - name: Create RabbitMQ admin user
   command: rabbitmqctl add_user admin 123
@@ -178,3 +211,5 @@
       CELERY_BROKER_URL=amqp://celery:celerypass@{{ groups['host'][0] }}:5672/%2Fcelery
       PIPELINE_DIR=/opt/protein_pipeline
   become: true
+
+
