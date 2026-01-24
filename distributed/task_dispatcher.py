@@ -35,4 +35,4 @@ if __name__ == "__main__":
             if submitted % 100 == 0:
                 print(f"Submitted {submitted} tasks...")
 
-    print(f"✅ Done. Submitted {submitted} protein tasks.")
+    print(f"Done! Submitted {submitted} protein tasks.")

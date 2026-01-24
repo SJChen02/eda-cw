@@ -300,3 +300,20 @@
     state: started
     enabled: true
   become: true
+
+#firewall setting for rabbitmq
+- name: Open RabbitMQ broker port (Celery needs this)
+  firewalld:
+    port: 5672/tcp
+    permanent: true
+    state: enabled
+    immediate: true
+  become: true
+
+- name: Open RabbitMQ management UI port (optional)
+  firewalld:
+    port: 15672/tcp
+    permanent: true
+    state: enabled
+    immediate: true
+  become: true
