@@ -13,6 +13,7 @@ import subprocess
 import csv
 from pathlib import Path
 import sys
+import math
 
 
 INVENTORY = "./generate_inventory.py"
@@ -76,9 +77,14 @@ def write_final_results(data_lines: list[str]) -> None:
                 w.writerow(parts[:7])
 
 
+import math
+
 def to_float(x: str):
     try:
-        return float(x)
+        v = float(x)
+        if math.isnan(v) or math.isinf(v):
+            return None
+        return v
     except Exception:
         return None
 
