@@ -178,6 +178,6 @@
     dest: /etc/sysconfig/protein-pipeline
     mode: "0644"
     content: |
-      CELERY_BROKER_URL=amqp://celery:celerypass@{{ ansible_host | default(inventory_hostname) }}:5672/%2Fcelery
+      CELERY_BROKER_URL=amqp://celery:celerypass@{{ groups['host'][0] }}:5672/%2Fcelery
       PIPELINE_DIR=/opt/protein_pipeline
   become: true
