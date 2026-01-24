@@ -1,7 +1,7 @@
 ---
 # Monitoring role for AlmaLinux/RHEL-family (dnf + systemd)
 # - Installs node_exporter on ALL hosts
-# - Installs Prometheus + Grafana ONLY on hosts in group "host" (your RabbitMQ host)
+# - Installs Prometheus + Grafana on hosts in group "host" AND "workers"
 
 - name: Install prerequisite packages
   become: yes
@@ -82,11 +82,11 @@
     state: started
 
 # ---------------------------------------------------------
-# Prometheus + Grafana (ONLY on the "host" group machine)
+# Prometheus + Grafana (HOST + WORKERS)
 # ---------------------------------------------------------
-- name: Install Prometheus + Grafana on host only
+- name: Install Prometheus + Grafana on host and workers
   become: yes
-  when: inventory_hostname in (groups.get('host', []))
+  when: inventory_hostname in (groups.get('host', []) + groups.get('workers', []))
   block:
     - name: Create prometheus user
       user:
