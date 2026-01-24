@@ -1,9 +1,10 @@
 ---
-# roles/monitoring/tasks/main.yml
-# AlmaLinux/RHEL-style: native installs + systemd
-# Installs node_exporter everywhere, Prometheus+Grafana only on monitoring hosts.
+# Monitoring role for AlmaLinux/RHEL-family (dnf + systemd)
+# - Installs node_exporter on ALL hosts
+# - Installs Prometheus + Grafana ONLY on hosts in group "host" (your RabbitMQ host)
 
 - name: Install prerequisite packages
+  become: yes
   dnf:
     name:
       - curl
@@ -12,42 +13,42 @@
       - ca-certificates
     state: present
     update_cache: yes
-  become: true
 
 # -------------------------
 # node_exporter (ALL NODES)
 # -------------------------
 - name: Create node_exporter user
+  become: yes
   user:
     name: node_exporter
     shell: /sbin/nologin
     system: true
     create_home: false
-  become: true
 
 - name: Download node_exporter tarball
+  become: yes
   get_url:
     url: "https://github.com/prometheus/node_exporter/releases/download/v{{ node_exporter_version }}/node_exporter-{{ node_exporter_version }}.linux-amd64.tar.gz"
     dest: "/tmp/node_exporter-{{ node_exporter_version }}.tar.gz"
     mode: "0644"
-  become: true
 
 - name: Extract node_exporter
+  become: yes
   unarchive:
     src: "/tmp/node_exporter-{{ node_exporter_version }}.tar.gz"
     dest: /tmp
     remote_src: true
-  become: true
 
 - name: Install node_exporter binary
+  become: yes
   copy:
     src: "/tmp/node_exporter-{{ node_exporter_version }}.linux-amd64/node_exporter"
     dest: /usr/local/bin/node_exporter
     mode: "0755"
     remote_src: true
-  become: true
 
 - name: Create systemd unit for node_exporter
+  become: yes
   copy:
     dest: /etc/systemd/system/node_exporter.service
     mode: "0644"
@@ -67,25 +68,25 @@
 
       [Install]
       WantedBy=multi-user.target
-  become: true
 
 - name: Reload systemd (node_exporter)
+  become: yes
   systemd:
     daemon_reload: yes
-  become: true
 
 - name: Enable and start node_exporter
+  become: yes
   systemd:
     name: node_exporter
     enabled: yes
     state: started
-  become: true
 
-# -----------------------------------------
-# Prometheus + Grafana (MONITORING HOSTS)
-# -----------------------------------------
-- name: Install Prometheus and Grafana on monitoring hosts only
-  when: inventory_hostname in groups['host']
+# ---------------------------------------------------------
+# Prometheus + Grafana (ONLY on the "host" group machine)
+# ---------------------------------------------------------
+- name: Install Prometheus + Grafana on host only
+  become: yes
+  when: inventory_hostname in (groups.get('host', []))
   block:
     - name: Create prometheus user
       user:
@@ -93,7 +94,6 @@
         shell: /sbin/nologin
         system: true
         create_home: false
-      become: true
 
     - name: Create Prometheus directories
       file:
@@ -105,21 +105,18 @@
       loop:
         - /etc/prometheus
         - /var/lib/prometheus
-      become: true
 
     - name: Download Prometheus tarball
       get_url:
         url: "https://github.com/prometheus/prometheus/releases/download/v{{ prometheus_version }}/prometheus-{{ prometheus_version }}.linux-amd64.tar.gz"
         dest: "/tmp/prometheus-{{ prometheus_version }}.tar.gz"
         mode: "0644"
-      become: true
 
     - name: Extract Prometheus
       unarchive:
         src: "/tmp/prometheus-{{ prometheus_version }}.tar.gz"
         dest: /tmp
         remote_src: true
-      become: true
 
     - name: Install prometheus and promtool binaries
       copy:
@@ -130,9 +127,8 @@
       loop:
         - prometheus
         - promtool
-      become: true
 
-    - name: Install Prometheus consoles and console_libraries
+    - name: Install Prometheus consoles and libraries
       copy:
         src: "/tmp/prometheus-{{ prometheus_version }}.linux-amd64/{{ item }}"
         dest: "/etc/prometheus/{{ item }}"
@@ -143,9 +139,8 @@
       loop:
         - consoles
         - console_libraries
-      become: true
 
-    - name: Write prometheus.yml (scrape all nodes node_exporter)
+    - name: Write prometheus.yml (scrape node_exporter on all nodes)
       copy:
         dest: /etc/prometheus/prometheus.yml
         owner: prometheus
@@ -160,10 +155,8 @@
               static_configs:
                 - targets:
           {% for h in groups['all'] %}
-            - "{{ (hostvars[h].ip[0] | default(h)) }}:9100"
+                    - "{{ (hostvars[h].ip[0] | default(h)) }}:9100"
           {% endfor %}
-
-      become: true
 
     - name: Create systemd unit for Prometheus
       copy:
@@ -189,21 +182,18 @@
 
           [Install]
           WantedBy=multi-user.target
-      become: true
 
     - name: Reload systemd (prometheus)
       systemd:
         daemon_reload: yes
-      become: true
 
     - name: Enable and start Prometheus
       systemd:
         name: prometheus
         enabled: yes
         state: started
-      become: true
 
-    # Grafana (official repo)
+    # Grafana OSS repo + install
     - name: Add Grafana YUM repo
       yum_repository:
         name: grafana
@@ -214,18 +204,15 @@
         enabled: yes
         gpgkey: https://rpm.grafana.com/gpg.key
         sslverify: yes
-      become: true
 
     - name: Install Grafana
       dnf:
         name: grafana
         state: present
         update_cache: yes
-      become: true
 
     - name: Enable and start Grafana
       systemd:
         name: grafana-server
         enabled: yes
         state: started
-      become: true
