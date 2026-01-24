@@ -19,14 +19,16 @@ S4PRED_THREADS = os.environ.get("S4PRED_THREADS", "1")
 HHSEARCH_CPU = os.environ.get("HHSEARCH_CPU", "1")
 
 def run_parser(hhr_file):
-    """
-    Run the results_parser.py over the hhr file to produce the output summary
-    """
-    cmd = ['python3', './results_parser.py', hhr_file]
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    parser_path = os.path.join(script_dir, "results_parser.py")
+
+    cmd = ['python3', parser_path, hhr_file]
     print(f'STEP 4: RUNNING PARSER: {" ".join(cmd)}')
-    p = Popen(cmd, stdin=PIPE,stdout=PIPE, stderr=PIPE)
+    p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE)
     out, err = p.communicate()
     print(out.decode("utf-8"))
+    if err:
+        print(err.decode("utf-8"), file=sys.stderr)
 
 def run_hhsearch(a3m_file):
     """
