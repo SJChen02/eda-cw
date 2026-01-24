@@ -4,10 +4,12 @@
   become: yes
   roles:
     - host
+    - monitoring
 
 - name: Configure Celery workers
   hosts: workers
   become: yes
   roles:
     - workers
+    - monitoring
 

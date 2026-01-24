@@ -87,6 +87,8 @@
   pip:
     name:
       - biopython
+      - numpy
+      - scipy
     executable: pip3
   become: true
 
