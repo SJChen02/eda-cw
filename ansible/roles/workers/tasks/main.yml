@@ -109,7 +109,7 @@
       Type=simple
       WorkingDirectory=/opt/protein_pipeline
       EnvironmentFile=/etc/sysconfig/protein-pipeline
-      ExecStart=/usr/bin/python3 -m celery -A pipeline_tasks worker --loglevel=INFO --concurrency=4 --prefetch-multiplier=1
+      ExecStart=/usr/bin/python3 -m celery -A pipeline_tasks worker --loglevel=INFO --concurrency=1 --prefetch-multiplier=1
       Restart=always
       RestartSec=3
 
