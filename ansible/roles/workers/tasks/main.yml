@@ -87,11 +87,11 @@
   copy:
     dest: /etc/sysconfig/protein-pipeline
     mode: "0644"
-  content: |
-    CELERY_BROKER_URL=amqp://celery:celerypass@10.134.12.197:5672//celery
-    PIPELINE_DIR=/opt/protein_pipeline
-    RESULTS_ROOT=/data/results
-    WORK_ROOT=/tmp/protein_work
+    content: |
+      CELERY_BROKER_URL=amqp://celery:celerypass@10.134.12.197:5672//celery
+      PIPELINE_DIR=/opt/protein_pipeline
+      RESULTS_ROOT=/data/results
+      WORK_ROOT=/tmp/protein_work
   become: true
 
 # IMPORTANT: force concurrency=1 to avoid tmp.* collisions
