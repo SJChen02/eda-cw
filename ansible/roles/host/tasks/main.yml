@@ -181,13 +181,5 @@
       CELERY_BROKER_URL=amqp://celery:celerypass@{{ groups['host'][0] }}:5672/%2Fcelery
       PIPELINE_DIR=/opt/protein_pipeline
   become: true
-  register: pipeline_env
 
-- name: Restart celery worker if env changed
-  systemd:
-    name: celery
-    state: restarted
-    enabled: true
-  become: true
-  when: pipeline_env.changed
 

@@ -4,7 +4,22 @@ import subprocess
 from celery import Celery
 
 # Broker URL injected by Ansible or shell env
-BROKER_URL = os.environ.get("CELERY_BROKER_URL")
+def load_sysconfig_value(key, path="/etc/sysconfig/protein-pipeline"):
+    try:
+        with open(path) as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                k, v = line.split("=", 1)
+                if k.strip() == key:
+                    return v.strip()
+    except FileNotFoundError:
+        pass
+    return None
+
+BROKER_URL = os.environ.get("CELERY_BROKER_URL") or load_sysconfig_value("CELERY_BROKER_URL")
+
 if not BROKER_URL:
     raise RuntimeError(
         "CELERY_BROKER_URL is not set. "
