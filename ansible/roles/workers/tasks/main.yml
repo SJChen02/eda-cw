@@ -77,7 +77,7 @@
 
 - name: Copy pipeline_tasks.py to workers (Celery task module)
   copy:
-    src: /home/almalinux/eda-cw/distributed//pipeline_tasks.py
+    src: /home/almalinux/eda-cw/distributed/pipeline_tasks.py
     dest: /opt/protein_pipeline/pipeline_tasks.py
     owner: almalinux
     group: almalinux
@@ -113,7 +113,7 @@
 
       [Install]
       WantedBy=multi-user.target
-    become: true
+  become: true
 
 - name: Reload systemd
   systemd:

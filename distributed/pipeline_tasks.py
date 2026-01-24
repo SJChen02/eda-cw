@@ -66,3 +66,36 @@ def run_pipeline(self, fasta_path: str) -> dict:
         "worker": os.uname().nodename,
         "fasta_path": fasta_path,
     }
+
+# -----------------------
+# Smoke test tasks
+# -----------------------
+import socket
+import pathlib
+
+@app.task(name="smoke.ping")
+def ping():
+    return {"worker": socket.gethostname(), "ok": True}
+
+@app.task(name="smoke.check_tools")
+def check_tools():
+    def cmd_ok(cmd):
+        try:
+            subprocess.run(cmd, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+            return True
+        except Exception:
+            return False
+
+    return {
+        "worker": socket.gethostname(),
+        "env_has_broker": "CELERY_BROKER_URL" in os.environ,
+        "pipeline_dir_exists": os.path.isdir(os.environ.get("PIPELINE_DIR", "")),
+        "hhsearch_ok": cmd_ok(["hhsearch", "-h"]),
+        "s4pred_ok": cmd_ok(["python3", "/opt/s4pred/run_model.py", "-h"]),
+    }
+
+@app.task(name="smoke.write_file")
+def write_file():
+    p = pathlib.Path("/tmp/celery_smoke_test.txt")
+    p.write_text(f"hello from {socket.gethostname()}\n")
+    return {"worker": socket.gethostname(), "wrote": str(p)}
