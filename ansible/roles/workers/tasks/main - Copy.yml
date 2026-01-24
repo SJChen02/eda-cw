@@ -32,7 +32,6 @@
       - scipy
       - torch
     executable: pip3
-  become: true
 
 # Where the pipeline code will live on each worker
 - name: Create pipeline directory
@@ -42,7 +41,6 @@
     owner: almalinux
     group: almalinux
     mode: "0755"
-  become: true
 
 # Copy scripts from the Ansible controller (cw-host) to workers
 # IMPORTANT: src paths are on cw-host
@@ -53,7 +51,6 @@
     owner: almalinux
     group: almalinux
     mode: "0755"
-  become: true
 
 - name: Copy results_parser.py to workers
   copy:
@@ -90,7 +87,6 @@
     content: |
       CELERY_BROKER_URL=amqp://celery:celerypass@{{ groups['host'][0] }}:5672/%2Fcelery
       PIPELINE_DIR=/opt/protein_pipeline
-  become: true
 
 # IMPORTANT: force concurrency=1 to avoid tmp.* collisions
 - name: Install systemd unit for celery worker
@@ -113,12 +109,10 @@
 
       [Install]
       WantedBy=multi-user.target
-    become: true
 
 - name: Reload systemd
   systemd:
     daemon_reload: yes
-  become: true
 
 - name: Enable and start celery worker
   systemd:
@@ -151,14 +145,23 @@
     executable: pip3
   become: true
 
-- name: Clone S4Pred to /opt/s4pred
-  git:
-    repo: "https://github.com/psipred/s4pred"
-    dest: /opt/s4pred
-    version: main
-    force: no
+- name: Ensure /opt/s4pred exists
+  file:
+    path: /opt/s4pred
+    state: directory
+    mode: "0755"
   become: true
 
+# Copy the repo you already downloaded on the controller
+# IMPORTANT: src path is on the CONTROLLER machine (cw-host), not on workers.
+- name: Copy S4Pred repo from controller to worker
+  copy:
+    src: /home/almalinux/eda-cw/s4pred-main/
+    dest: /opt/s4pred/
+    mode: preserve
+  become: true
+
+# Option A (recommended if workers have internet): download weights on each worker
 - name: Download S4Pred weights tarball
   get_url:
     url: "http://bioinfadmin.cs.ucl.ac.uk/downloads/s4pred/weights.tar.gz"
@@ -173,39 +176,52 @@
     remote_src: yes
   become: true
 
+
 # ---- HH-suite (hhsearch) ----
 - name: Install build deps for HH-suite
   dnf:
     name:
-      - cmake
       - gcc
       - gcc-c++
       - make
+      - cmake
       - zlib-devel
       - bzip2-devel
+      - xz-devel
+      - libcurl-devel
     state: present
+    update_cache: yes
   become: true
 
-- name: Clone HH-suite
-  git:
-    repo: "https://github.com/soedinglab/hh-suite"
-    dest: /opt/hhsuite-src
-    version: master
-    force: no
+- name: Ensure /opt/hhsuite-src exists
+  file:
+    path: /opt/hhsuite-src
+    state: directory
+    mode: "0755"
   become: true
 
-- name: Build and install HH-suite
+# Copy HH-suite source from controller
+- name: Copy HH-suite repo from controller to worker
+  copy:
+    src: /home/almalinux/eda-cw/hh-suite-master/
+    dest: /opt/hhsuite-src/
+    mode: preserve
+  become: true
+
+- name: Build HH-suite from source
   shell: |
-    set -e
-    mkdir -p /opt/hhsuite-src/build
-    cd /opt/hhsuite-src/build
-    cmake -DCMAKE_INSTALL_PREFIX=/opt/hhsuite ..
+    set -euo pipefail
+    cd /opt/hhsuite-src
+    mkdir -p build
+    cd build
+    cmake -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX=/opt/hhsuite ..
     make -j"$(nproc)"
     make install
   args:
-    creates: /opt/hhsuite/bin/hhsearch
+    executable: /bin/bash
   become: true
 
+# Your pipeline calls /usr/bin/hhsearch specifically, so provide it.
 - name: Symlink hhsearch into /usr/bin/hhsearch
   file:
     src: /opt/hhsuite/bin/hhsearch
@@ -213,7 +229,6 @@
     state: link
     force: yes
   become: true
-
 
 # ---- HHDB (pdb70) ----
 - name: Create HHDB directory
