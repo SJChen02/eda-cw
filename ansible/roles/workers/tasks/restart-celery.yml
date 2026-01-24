@@ -1,0 +1,9 @@
+---
+- name: Restart Celery workers
+  hosts: workers
+  become: true
+  tasks:
+    - name: Restart celery-worker service
+      systemd:
+        name: celery-worker
+        state: restarted
