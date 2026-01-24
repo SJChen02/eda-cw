@@ -224,16 +224,22 @@
   become: true
 
 # NOTE: pdb70 is large. This download can take a while and needs disk space.
-- name: Download pdb70 database archive
-  get_url:
-    url: "https://wwwuser.gwdguser.de/~compbiol/data/hhsuite/databases/hhsuite_dbs/pdb70_from_mmcif_latest.tar.gz"
-    dest: /data/hhdb/pdb70/pdb70.tar.gz
-    mode: "0644"
+- name: Download pdb70 database archive (with progress)
+  shell: |
+    set -euo pipefail
+    mkdir -p /data/hhdb/pdb70
+    cd /data/hhdb/pdb70
+    wget -c --progress=dot:giga \
+      "https://wwwuser.gwdguser.de/~compbiol/data/hhsuite/databases/hhsuite_dbs/pdb70_from_mmcif_latest.tar.gz" \
+      -O pdb70.tar.gz
+  args:
+    executable: /bin/bash
   become: true
 
 - name: Extract pdb70 into /data/hhdb/pdb70
-  unarchive:
-    src: /data/hhdb/pdb70/pdb70.tar.gz
-    dest: /data/hhdb/pdb70
-    remote_src: yes
+  shell: |
+    cd /data/hhdb/pdb70
+    tar -xf pdb70.tar.gz
+  args:
+    creates: /data/hhdb/pdb70/pdb70_hhm.ffindex
   become: true
