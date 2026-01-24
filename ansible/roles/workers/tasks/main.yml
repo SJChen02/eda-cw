@@ -226,7 +226,7 @@
 # NOTE: pdb70 is large. This download can take a while and needs disk space.
 - name: Download pdb70 database archive
   get_url:
-    url: "https://wwwuser.gwdg.de/~compbiol/data/hhsuite/databases/hhsuite_dbs/pdb70/pdb70_from_mmcif_220313.tar.gz"
+    url: "https://wwwuser.gwdguser.de/~compbiol/data/hhsuite/databases/hhsuite_dbs/pdb70_from_mmcif_latest.tar.gz"
     dest: /data/hhdb/pdb70/pdb70.tar.gz
     mode: "0644"
   become: true
