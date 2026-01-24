@@ -4,7 +4,9 @@ final_results.py
 
 1) Collect *_parse.out from all workers via ansible
 2) Build final_results.csv
-3) Build hits_output.csv and profile_output.csv in /home/almalinux/eda-cw
+3) Build hits_output.csv and profile_output.csv
+
+ALL outputs go into ./pipeline_output/
 """
 
 import subprocess
@@ -14,11 +16,13 @@ import sys
 
 
 INVENTORY = "./generate_inventory.py"
-OUTDIR = Path("/home/almalinux/eda-cw").resolve()
 
-FINAL_RESULTS = Path("final_results.csv")
-HITS_OUT = OUTDIR / "hits_output.csv"
-PROFILE_OUT = OUTDIR / "profile_output.csv"
+# Output directory
+PIPELINE_OUTDIR = Path("pipeline_output")
+
+FINAL_RESULTS = PIPELINE_OUTDIR / "final_results.csv"
+HITS_OUT = PIPELINE_OUTDIR / "hits_output.csv"
+PROFILE_OUT = PIPELINE_OUTDIR / "profile_output.csv"
 
 HEADER = [
     "query_id",
@@ -87,8 +91,10 @@ def format_outputs():
         for r in reader:
             rows.append(r)
 
+    # Ensure output dir exists
+    PIPELINE_OUTDIR.mkdir(parents=True, exist_ok=True)
+
     # ---- hits_output.csv ----
-    HITS_OUT.parent.mkdir(parents=True, exist_ok=True)
     with HITS_OUT.open("w", newline="") as f:
         w = csv.writer(f)
         w.writerow(["fasta_id", "best_hit_id"])
@@ -122,6 +128,9 @@ def format_outputs():
 
 
 def main():
+    # Ensure output dir exists early
+    PIPELINE_OUTDIR.mkdir(parents=True, exist_ok=True)
+
     data_lines = run_ansible_collect()
 
     if not data_lines:
@@ -134,8 +143,8 @@ def main():
 
     print("\nDONE.")
     print(f"- final_results.csv -> {FINAL_RESULTS.resolve()}")
-    print(f"- hits_output.csv   -> {HITS_OUT}")
-    print(f"- profile_output.csv-> {PROFILE_OUT}")
+    print(f"- hits_output.csv   -> {HITS_OUT.resolve()}")
+    print(f"- profile_output.csv-> {PROFILE_OUT.resolve()}")
 
 
 if __name__ == "__main__":
