@@ -18,7 +18,7 @@ def load_sysconfig_value(key, path="/etc/sysconfig/protein-pipeline"):
         pass
     return None
 
-BROKER_URL = os.environ.get("CELERY_BROKER_URL") or load_sysconfig_value("CELERY_BROKER_URL")
+BROKER_URL = os.environ.get("CELERY_BROKER_URL") or load_sysconfig_value("CELERY_BROKER_URL") or "amqp://celery:celery@10.134.12.197:5672//celery"
 
 if not BROKER_URL:
     raise RuntimeError(
