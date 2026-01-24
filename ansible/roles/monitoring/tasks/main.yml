@@ -85,7 +85,7 @@
 # Prometheus + Grafana (MONITORING HOSTS)
 # -----------------------------------------
 - name: Install Prometheus and Grafana on monitoring hosts only
-  when: inventory_hostname in groups['monitoring']
+  when: inventory_hostname in groups['host']
   block:
     - name: Create prometheus user
       user:
@@ -160,8 +160,9 @@
               static_configs:
                 - targets:
           {% for h in groups['all'] %}
-                    - "{{ (hostvars[h].ansible_host | default(h)) }}:9100"
+            - "{{ (hostvars[h].ip[0] | default(h)) }}:9100"
           {% endfor %}
+
       become: true
 
     - name: Create systemd unit for Prometheus

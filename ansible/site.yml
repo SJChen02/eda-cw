@@ -13,3 +13,11 @@
     - workers
     - monitoring
 
+- name: Install Prometheus + Grafana only on the host
+  hosts: host
+  become: yes
+  tasks:
+    - name: Include only the Prometheus/Grafana tasks
+      import_role:
+        name: monitoring
+        tasks_from: prometheus_grafana.yml
