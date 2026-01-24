@@ -10,6 +10,7 @@
       - rsync
       - tar
       - gzip
+      - tmux
     state: present
     update_cache: yes
 
@@ -20,6 +21,7 @@
       - biopython
       - numpy
       - scipy
+      - torch
     executable: pip3
 
 # Where the pipeline code will live on each worker

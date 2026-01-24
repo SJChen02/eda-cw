@@ -59,11 +59,12 @@
       type=rpm-md
   become: true
 
-- name: Install RabbitMQ server
+- name: Install RabbitMQ server and tmux
   dnf:
     name:
       - erlang
       - rabbitmq-server
+      - tmux
     state: present
     update_cache: yes
   become: true
@@ -98,7 +99,6 @@
     state: present
     update_cache: yes
   become: true
-
 
 
 # Install celery
