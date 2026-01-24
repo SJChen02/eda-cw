@@ -59,7 +59,7 @@
       type=rpm-md
   become: true
 
-#installing python
+  #installing python
 - name: Install Python runtime for dispatcher (host)
   dnf:
     name:
@@ -69,13 +69,12 @@
     update_cache: yes
   become: true
 
-- name: Upgrade pip
-  pip:
-    name: pip
-    state: latest
-    executable: pip3
+- name: Upgrade pip 
+  pip: 
+    name: pip 
+    state: latest 
+    executable: pip3 
   become: true
-
 
 # Install celery
 - name: Install Celery on host (producer)
@@ -83,7 +82,6 @@
     name: celery
     executable: pip3
   become: true
-
 
 - name: Install Python packages on host (dispatcher deps)
   pip:
@@ -123,10 +121,9 @@
   when: mgmt_res is changed
   become: true
 
-
 # Create celery vhost/user (so you don't rely on guest/guest remotely)
 - name: Create celery vhost
-  command: rabbitmqctl add_vhost celery
+  command: rabbitmqctl add_vhost /celery
   register: vhost_res
   failed_when: vhost_res.rc not in [0, 70]
   changed_when: vhost_res.rc == 0
@@ -140,7 +137,7 @@
   become: true
 
 - name: Set permissions for celery user
-  command: rabbitmqctl set_permissions -p celery celery ".*" ".*" ".*"
+  command: rabbitmqctl set_permissions -p /celery celery ".*" ".*" ".*"
   become: true
 
 # Admin user for RabbitMQ Management UI (separate from celery worker user)
@@ -159,18 +156,8 @@
   command: rabbitmqctl set_permissions -p / admin ".*" ".*" ".*"
   become: true
 
-- name: Set permissions for admin user on celery
-  command: rabbitmqctl set_permissions -p celery admin ".*" ".*" ".*"
-  become: true
-
-#Copy experiment_ids.txt to host
-- name: Copy experiment_ids.txt to host pipeline directory
-  copy:
-    src: /home/almalinux/eda-cw/experiment_ids.txt
-    dest: /opt/protein_pipeline/experiment_ids.txt
-    owner: almalinux
-    group: almalinux
-    mode: "0644"
+- name: Set permissions for admin user on /celery
+  command: rabbitmqctl set_permissions -p /celery admin ".*" ".*" ".*"
   become: true
 
 #Copy protein FASTA to host
@@ -223,27 +210,35 @@
     dest: /etc/sysconfig/protein-pipeline
     mode: "0644"
     content: |
-      CELERY_BROKER_URL=amqp://celery:celerypass@10.134.12.197:5672/celery
+      CELERY_BROKER_URL=amqp://celery:celerypass@10.134.12.197:5672//celery
       PIPELINE_DIR=/opt/protein_pipeline
   become: true
 
-# --- Flower (Celery monitoring) installation ---
-
-- name: Ensure Python3 and pip are installed
-  yum:
-    name:
-      - python3
-      - python3-pip
-    state: present
+#Copy experiment_ids.txt to host
+- name: Copy experiment_ids.txt to host pipeline directory
+  copy:
+    src: /home/almalinux/eda-cw/experiment_ids.txt
+    dest: /opt/protein_pipeline/experiment_ids.txt
+    owner: almalinux
+    group: almalinux
+    mode: "0644"
   become: true
 
-- name: Install Flower
-  pip:
-    name: flower
-    state: present
-    executable: pip3
-  become: true
+# --- Flower (Celery monitoring) installation --- 
+- name: Ensure Python3 and pip are installed 
+  yum: 
+    name: 
+      - python3 
+      - python3-pip 
+    state: present 
+  become: true 
 
+- name: Install Flower 
+  pip: 
+    name: flower 
+    state: present 
+    executable: pip3 
+  become: true
 
 # --- Flower systemd service + firewall ---
 
@@ -257,7 +252,7 @@
       [Unit]
       Description=Flower Celery Monitoring
       After=network.target rabbitmq-server.service
-
+      
       [Service]
       Type=simple
       User=almalinux
