@@ -59,6 +59,32 @@
       type=rpm-md
   become: true
 
+#installing python
+- name: Install Python runtime for dispatcher (host)
+  dnf:
+    name:
+      - python3
+      - python3-pip
+    state: present
+    update_cache: yes
+  become: true
+
+- name: Upgrade pip
+  pip:
+    name: pip
+    state: latest
+    executable: pip3
+  become: true
+
+
+# Install celery
+- name: Install Celery on host (producer)
+  pip:
+    name: celery
+    executable: pip3
+  become: true
+
+
 - name: Install Python packages on host (dispatcher deps)
   pip:
     name:
@@ -97,27 +123,10 @@
   when: mgmt_res is changed
   become: true
 
-#installing python
-- name: Install Python runtime for dispatcher (host)
-  dnf:
-    name:
-      - python3
-      - python3-pip
-    state: present
-    update_cache: yes
-  become: true
-
-
-# Install celery
-- name: Install Celery on host (producer)
-  pip:
-    name: celery
-    executable: pip3
-  become: true
 
 # Create celery vhost/user (so you don't rely on guest/guest remotely)
 - name: Create celery vhost
-  command: rabbitmqctl add_vhost /celery
+  command: rabbitmqctl add_vhost celery
   register: vhost_res
   failed_when: vhost_res.rc not in [0, 70]
   changed_when: vhost_res.rc == 0
@@ -131,7 +140,7 @@
   become: true
 
 - name: Set permissions for celery user
-  command: rabbitmqctl set_permissions -p /celery celery ".*" ".*" ".*"
+  command: rabbitmqctl set_permissions -p celery celery ".*" ".*" ".*"
   become: true
 
 # Admin user for RabbitMQ Management UI (separate from celery worker user)
@@ -150,8 +159,8 @@
   command: rabbitmqctl set_permissions -p / admin ".*" ".*" ".*"
   become: true
 
-- name: Set permissions for admin user on /celery
-  command: rabbitmqctl set_permissions -p /celery admin ".*" ".*" ".*"
+- name: Set permissions for admin user on celery
+  command: rabbitmqctl set_permissions -p celery admin ".*" ".*" ".*"
   become: true
 
 #Copy experiment_ids.txt to host
@@ -214,8 +223,83 @@
     dest: /etc/sysconfig/protein-pipeline
     mode: "0644"
     content: |
-      CELERY_BROKER_URL=amqp://celery:celerypass@10.134.12.197:5672//celery
+      CELERY_BROKER_URL=amqp://celery:celerypass@10.134.12.197:5672/celery
       PIPELINE_DIR=/opt/protein_pipeline
   become: true
 
+# --- Flower (Celery monitoring) installation ---
 
+- name: Ensure Python3 and pip are installed
+  yum:
+    name:
+      - python3
+      - python3-pip
+    state: present
+  become: true
+
+- name: Install Flower
+  pip:
+    name: flower
+    state: present
+    executable: pip3
+  become: true
+
+
+# --- Flower systemd service + firewall ---
+
+- name: Create flower systemd service file
+  copy:
+    dest: /etc/systemd/system/flower.service
+    owner: root
+    group: root
+    mode: '0644'
+    content: |
+      [Unit]
+      Description=Flower Celery Monitoring
+      After=network.target rabbitmq-server.service
+
+      [Service]
+      Type=simple
+      User=almalinux
+      EnvironmentFile=/etc/sysconfig/protein-pipeline
+      WorkingDirectory=/opt/protein_pipeline
+      ExecStart=/usr/bin/python3 -m flower --broker=${CELERY_BROKER_URL} --port=5555
+      Restart=always
+      RestartSec=5
+
+      [Install]
+      WantedBy=multi-user.target
+  become: true
+
+- name: Reload systemd daemon
+  systemd:
+    daemon_reload: yes
+  become: true
+
+- name: Ensure firewalld is installed and running
+  yum:
+    name: firewalld
+    state: present
+  become: true
+
+- name: Start and enable firewalld
+  systemd:
+    name: firewalld
+    state: started
+    enabled: true
+  become: true
+
+- name: Open Flower port 5555 in firewall
+  firewalld:
+    port: 5555/tcp
+    permanent: true
+    state: enabled
+    immediate: true
+  become: true
+
+- name: Enable and start Flower service
+  systemd:
+    name: flower
+    state: started
+    enabled: true
+  become: true
