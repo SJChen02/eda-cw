@@ -87,9 +87,11 @@
   copy:
     dest: /etc/sysconfig/protein-pipeline
     mode: "0644"
-    content: |
-      CELERY_BROKER_URL=amqp://celery:celerypass@{{ groups['host'][0] }}:5672/%2Fcelery
-      PIPELINE_DIR=/opt/protein_pipeline
+  content: |
+    CELERY_BROKER_URL=amqp://celery:celerypass@10.134.12.197:5672//celery
+    PIPELINE_DIR=/opt/protein_pipeline
+    RESULTS_ROOT=/data/results
+    WORK_ROOT=/tmp/protein_work
   become: true
 
 # IMPORTANT: force concurrency=1 to avoid tmp.* collisions
@@ -107,7 +109,7 @@
       Type=simple
       WorkingDirectory=/opt/protein_pipeline
       EnvironmentFile=/etc/sysconfig/protein-pipeline
-      ExecStart=/usr/bin/python3 -m celery -A pipeline_tasks worker --loglevel=INFO --concurrency=1
+      ExecStart=/usr/bin/python3 -m celery -A pipeline_tasks worker --loglevel=INFO --concurrency=4 --prefetch-multiplier=1
       Restart=always
       RestartSec=3
 
@@ -126,13 +128,17 @@
     enabled: yes
     state: restarted
 
-- name: Create protein data directory
+- name: Create results and work directories
   file:
-    path: /data/proteins
+    path: "{{ item }}"
     state: directory
     owner: almalinux
     group: almalinux
     mode: "0755"
+  loop:
+    - /data/results
+    - /tmp/protein_work
+  become: true
 
 - name: Copy protein FASTA to workers
   copy:

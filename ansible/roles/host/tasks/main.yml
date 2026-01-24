@@ -147,6 +147,16 @@
   command: rabbitmqctl set_permissions -p /celery admin ".*" ".*" ".*"
   become: true
 
+#Copy experiment_ids.txt to host
+- name: Copy experiment_ids.txt to host pipeline directory
+  copy:
+    src: /home/almalinux/eda-cw/experiment_ids.txt
+    dest: /opt/protein_pipeline/experiment_ids.txt
+    owner: almalinux
+    group: almalinux
+    mode: "0644"
+  become: true
+
 
 # -------------------------------
 # Protein pipeline dispatcher bits
@@ -177,9 +187,9 @@
   copy:
     dest: /etc/sysconfig/protein-pipeline
     mode: "0644"
-    content: |
-      CELERY_BROKER_URL=amqp://celery:celerypass@{{ groups['host'][0] }}:5672/%2Fcelery
-      PIPELINE_DIR=/opt/protein_pipeline
+  content: |
+    CELERY_BROKER_URL=amqp://celery:celerypass@10.134.12.197:5672//celery
+    PIPELINE_DIR=/opt/protein_pipeline
   become: true
 
 
