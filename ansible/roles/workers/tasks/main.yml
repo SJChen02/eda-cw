@@ -1,18 +1,27 @@
 ---
 # roles/workers/tasks/main.yml
 
-- name: Install base packages
+# -------------------------------
+# Extra dependencies for pipeline (WORKERS)
+# - S4Pred
+# - HH-suite (hhsearch)
+# - HHDB (pdb70)
+# -------------------------------
+- name: Install OS packages needed for downloads/extract
   dnf:
     name:
-      - python3
-      - python3-pip
       - git
-      - rsync
+      - wget
       - tar
       - gzip
+      - bzip2
+      - xz
+      - python3
+      - python3-pip
       - tmux
     state: present
     update_cache: yes
+  become: true
 
 - name: Install Python packages (Celery + pipeline deps)
   pip:
@@ -126,3 +135,89 @@
     owner: almalinux
     group: almalinux
     mode: "0644"
+
+# ---- S4Pred ----
+- name: Install Python deps for S4Pred (system-wide)
+  pip:
+    name:
+      - "biopython>=1.78"
+      - "torch"
+    executable: pip3
+  become: true
+
+- name: Clone S4Pred to /opt/s4pred
+  git:
+    repo: "https://github.com/psipred/s4pred"
+    dest: /opt/s4pred
+    version: main
+    force: no
+  become: true
+
+- name: Download S4Pred weights tarball
+  get_url:
+    url: "http://bioinfadmin.cs.ucl.ac.uk/downloads/s4pred/weights.tar.gz"
+    dest: /opt/s4pred/weights.tar.gz
+    mode: "0644"
+  become: true
+
+- name: Extract S4Pred weights (creates /opt/s4pred/weights/)
+  unarchive:
+    src: /opt/s4pred/weights.tar.gz
+    dest: /opt/s4pred
+    remote_src: yes
+  become: true
+
+# ---- HH-suite (hhsearch) ----
+# Uses precompiled binaries from HH-suite README (SSE2 build is most compatible)
+- name: Create HH-suite install dir
+  file:
+    path: /opt/hhsuite
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: Download HH-suite (SSE2) precompiled bundle
+  get_url:
+    url: "https://github.com/soedinglab/hh-suite/releases/download/v3.3.0/hhsuite-linux-sse2-3.3.0.tar.gz"
+    dest: /opt/hhsuite/hhsuite-linux-sse2-3.3.0.tar.gz
+    mode: "0644"
+  become: true
+
+- name: Extract HH-suite
+  unarchive:
+    src: /opt/hhsuite/hhsuite-linux-sse2-3.3.0.tar.gz
+    dest: /opt/hhsuite
+    remote_src: yes
+  become: true
+
+# Your pipeline calls /usr/bin/hhsearch specifically, so we provide it.
+- name: Symlink hhsearch into /usr/bin/hhsearch
+  file:
+    src: /opt/hhsuite/bin/hhsearch
+    dest: /usr/bin/hhsearch
+    state: link
+    force: yes
+  become: true
+
+# ---- HHDB (pdb70) ----
+- name: Create HHDB directory
+  file:
+    path: /data/hhdb/pdb70
+    state: directory
+    mode: "0755"
+  become: true
+
+# # NOTE: pdb70 is large. This download can take a while and needs disk space.
+# - name: Download pdb70 database archive
+#   get_url:
+#     url: "https://wwwuser.gwdg.de/~compbiol/data/hhsuite/databases/hhsuite_dbs/pdb70/pdb70_from_mmcif_220313.tar.gz"
+#     dest: /data/hhdb/pdb70/pdb70.tar.gz
+#     mode: "0644"
+#   become: true
+
+# - name: Extract pdb70 into /data/hhdb/pdb70
+#   unarchive:
+#     src: /data/hhdb/pdb70/pdb70.tar.gz
+#     dest: /data/hhdb/pdb70
+#     remote_src: yes
+#   become: true
