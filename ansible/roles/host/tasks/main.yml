@@ -59,6 +59,13 @@
       type=rpm-md
   become: true
 
+- name: Install Python packages on host (dispatcher deps)
+  pip:
+    name:
+      - biopython
+    executable: pip3
+  become: true
+
 - name: Install RabbitMQ server and tmux
   dnf:
     name:
