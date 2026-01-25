@@ -317,3 +317,40 @@
     state: enabled
     immediate: true
   become: true
+
+# --- Proteome data storage: samtools FASTA indexing (faidx) ---
+
+- name: Install samtools
+  dnf:
+    name: samtools
+    state: present
+    update_cache: yes
+  become: true
+
+- name: Ensure FASTA exists on host
+  stat:
+    path: /data/proteins/UP000000589_10090.fasta
+  register: fasta_stat
+  become: true
+
+- name: Fail if FASTA is missing
+  fail:
+    msg: "FASTA not found at /data/proteins/UP000000589_10090.fasta (copy it to this path before indexing)."
+  when: not fasta_stat.stat.exists
+  become: true
+
+- name: Create FASTA index (.fai) using samtools faidx
+  command: "samtools faidx /data/proteins/UP000000589_10090.fasta"
+  args:
+    creates: "/data/proteins/UP000000589_10090.fasta.fai"
+  become: true
+
+- name: Verify FASTA index exists
+  stat:
+    path: /data/proteins/UP000000589_10090.fasta.fai
+  register: fai_stat
+  become: true
+
+- name: Print FASTA index status
+  debug:
+    msg: "FASTA index exists: {{ fai_stat.stat.exists }} at /data/proteins/UP000000589_10090.fasta.fai"
