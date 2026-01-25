@@ -1,3 +1,4 @@
+---
 # --- Remove NFS server ---
 - name: Remove NFS export for proteins
   lineinfile:

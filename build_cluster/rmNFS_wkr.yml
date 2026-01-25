@@ -1,3 +1,4 @@
+---
 # --- Remove NFS client ---
 - name: Unmount NFS share
   mount:
