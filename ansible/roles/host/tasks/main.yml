@@ -318,47 +318,77 @@
     immediate: true
   become: true
 
-# --- Proteome data storage: samtools FASTA indexing (faidx) ---
 
-# Ensure tools needed to manage repos are present
-- name: Ensure dnf-plugins-core is installed (for config-manager)
-  dnf:
-    name: dnf-plugins-core
-    state: present
-  become: true
+# -------------------------------
+# NFS server on host (results share)
+# -------------------------------
 
-# Enable CRB repo (required for some samtools deps on EL9)
-- name: Enable CRB repo (EL9)
-  command: dnf config-manager --set-enabled crb
-  register: crb_enable
-  changed_when: crb_enable.rc == 0
-  failed_when: false
-  become: true
-
-- name: Install EPEL repository (required for samtools)
-  dnf:
-    name: epel-release
-    state: present
-    update_cache: yes
-  become: true
-
-# Refresh metadata after enabling repos
-- name: Refresh DNF cache after enabling EPEL/CRB
-  dnf:
-    update_cache: yes
-  become: true
-
-- name: Install samtools (and core runtime libs)
+- name: Install NFS utilities on host
   dnf:
     name:
-      - samtools
-      - htslib
+      - nfs-utils
     state: present
+    update_cache: yes
   become: true
 
-- name: Verify samtools is available
-  command: samtools --version
-  register: samtools_ver
+- name: Create shared results directories on host
+  file:
+    path: "{{ item }}"
+    state: directory
+    owner: almalinux
+    group: almalinux
+    mode: "0775"
+  loop:
+    - /data/results
+    - /data/results/final_outputs
+  become: true
+
+# Export /data/results to your private cluster network (adjust if needed)
+# Using 10.0.0.0/8 is usually fine for internal VPC ranges (your host IP is 10.x)
+- name: Configure NFS exports
+  copy:
+    dest: /etc/exports
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      /data/results 10.0.0.0/8(rw,sync,no_subtree_check,no_root_squash)
+  become: true
+
+- name: Enable and start NFS server
+  systemd:
+    name: nfs-server
+    enabled: true
+    state: started
+  become: true
+
+- name: Export NFS shares
+  command: exportfs -rav
   changed_when: false
-  failed_when: samtools_ver.rc != 0
+  become: true
+
+# Firewall: open NFS-related services
+- name: Open NFS services in firewall
+  firewalld:
+    service: "{{ item }}"
+    permanent: true
+    state: enabled
+    immediate: true
+  loop:
+    - nfs
+    - mountd
+    - rpc-bind
+  become: true
+
+# -------------------------------
+# Copy final_results.py to host
+# -------------------------------
+
+- name: Copy final_results.py to host pipeline directory
+  copy:
+    src: /home/almalinux/eda-cw/distributed/final_results.py
+    dest: /opt/protein_pipeline/final_results.py
+    owner: almalinux
+    group: almalinux
+    mode: "0755"
   become: true
