@@ -1,13 +1,16 @@
 ---
-# --- Remove NFS client ---
-- name: Unmount NFS share
-  mount:
-    path: /mnt/nfs/proteins
-    state: absent
+- name: Remove NFS client from workers
+  hosts: workers
   become: true
+  tasks:
 
-- name: Remove NFS client package
-  dnf:
-    name: nfs-utils
-    state: absent
-  become: true
+    - name: Unmount NFS share
+      mount:
+        path: /mnt/nfs/proteins
+        state: absent
+
+    - name: Remove NFS client package
+      dnf:
+        name: nfs-utils
+        state: absent
+
