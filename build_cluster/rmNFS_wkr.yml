@@ -1,0 +1,12 @@
+# --- Remove NFS client ---
+- name: Unmount NFS share
+  mount:
+    path: /mnt/nfs/proteins
+    state: absent
+  become: true
+
+- name: Remove NFS client package
+  dnf:
+    name: nfs-utils
+    state: absent
+  become: true

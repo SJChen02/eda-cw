@@ -264,28 +264,3 @@
   args:
     creates: /data/hhdb/pdb70/pdb70_hhm.ffindex
   become: true
-
-
-# --- NFS client on workers ---
-- name: Install NFS client packages
-  dnf:
-    name: nfs-utils
-    state: present
-  become: true
-
-- name: Ensure safe mountpoint exists
-  file:
-    path: /mnt/nfs/proteins
-    state: directory
-    mode: "0755"
-  become: true
-
-- name: Mount NFS share to safe mountpoint
-  mount:
-    path: /mnt/nfs/proteins
-    src: "{{ groups['host'][0] }}:/data/proteins"
-    fstype: nfs
-    opts: ro
-    state: mounted
-  become: true
-
