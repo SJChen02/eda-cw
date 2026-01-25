@@ -317,3 +317,41 @@
     state: enabled
     immediate: true
   become: true
+
+# --- NFS server on host ---
+- name: Install NFS server packages
+  dnf:
+    name: nfs-utils
+    state: present
+  become: true
+
+- name: Enable and start NFS server
+  systemd:
+    name: nfs-server
+    enabled: yes
+    state: started
+  become: true
+
+- name: Configure NFS exports (read-only)
+  lineinfile:
+    path: /etc/exports
+    line: "/data/proteins *(ro,sync,no_subtree_check)"
+    create: yes
+  become: true
+
+- name: Reload NFS exports
+  command: exportfs -ra
+  become: true
+
+# Open firewall on the HOST for NFS
+- name: Open NFS services in firewall (host)
+  firewalld:
+    service: "{{ item }}"
+    permanent: true
+    state: enabled
+    immediate: true
+  loop:
+    - nfs
+    - mountd
+    - rpc-bind
+  become: true

@@ -62,6 +62,7 @@
     owner: almalinux
     group: almalinux
     mode: "0644"
+  become: true
 
 # (Optional) copy select_ids.py too if you use it on workers
 - name: Copy select_ids.py to workers
@@ -71,6 +72,7 @@
     owner: almalinux
     group: almalinux
     mode: "0644"
+  become: true
   ignore_errors: yes
 
 # Celery worker for the protein pipeline (receives tasks from RabbitMQ on the host)
@@ -82,6 +84,7 @@
     owner: almalinux
     group: almalinux
     mode: "0644"
+  become: true
 
 - name: Write protein-pipeline environment file on workers
   copy:
@@ -122,12 +125,6 @@
     daemon_reload: yes
   become: true
 
-- name: Enable and start celery worker
-  systemd:
-    name: celery-worker
-    enabled: yes
-    state: restarted
-
 - name: Create results and work directories
   file:
     path: "{{ item }}"
@@ -139,6 +136,24 @@
     - /data/results
     - /tmp/protein_work
   become: true
+
+- name: Enable and start celery worker
+  systemd:
+    name: celery-worker
+    enabled: yes
+    state: restarted
+
+
+#create the dir on worker
+- name: Create proteins directory on workers
+  file:
+    path: /data/proteins
+    state: directory
+    owner: almalinux
+    group: almalinux
+    mode: "0755"
+  become: true
+
 
 - name: Copy protein FASTA to workers
   copy:
@@ -248,5 +263,29 @@
     tar -xf pdb70.tar.gz
   args:
     creates: /data/hhdb/pdb70/pdb70_hhm.ffindex
+  become: true
+
+
+# --- NFS client on workers ---
+- name: Install NFS client packages
+  dnf:
+    name: nfs-utils
+    state: present
+  become: true
+
+- name: Ensure safe mountpoint exists
+  file:
+    path: /mnt/nfs/proteins
+    state: directory
+    mode: "0755"
+  become: true
+
+- name: Mount NFS share to safe mountpoint
+  mount:
+    path: /mnt/nfs/proteins
+    src: "{{ groups['host'][0] }}:/data/proteins"
+    fstype: nfs
+    opts: ro
+    state: mounted
   become: true
 
