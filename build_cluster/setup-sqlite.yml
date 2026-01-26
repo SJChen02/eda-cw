@@ -99,3 +99,10 @@
     - name: Show DB row count
       debug:
         msg: "proteome.db row count = {{ db_count.stdout }}"
+
+    #install sqlite
+    - name: Install sqlite CLI for debugging 
+      dnf:
+        name: sqlite
+        state: present
+        update_cache: yes
