@@ -11,7 +11,7 @@
     host_pipeline_dir: "/opt/protein_pipeline"
 
     # Input FASTA (on the host)
-    fasta_gz_path: "/data/proteins/UP000000589_10090.fasta.gz"
+    fasta_gz_path: "/data/proteins/UP000000589_10090.fasta"
 
     # Output DB (on the host)
     db_path: "/data/proteome.db"
