@@ -380,15 +380,3 @@
     - rpc-bind
   become: true
 
-# -------------------------------
-# Copy final_results.py to host
-# -------------------------------
-
-- name: Copy final_results.py to host pipeline directory
-  copy:
-    src: /home/almalinux/eda-cw/distributed/final_results.py
-    dest: /opt/protein_pipeline/final_results.py
-    owner: almalinux
-    group: almalinux
-    mode: "0755"
-  become: true
