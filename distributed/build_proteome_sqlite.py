@@ -32,11 +32,7 @@ def parse_fasta(path: Path):
 
             if line.startswith(">"):
                 if header is not None:
-                    raw = header.split()[0]
-                    if "|" in raw:
-                        pid = raw.split("|")[1]
-                    else:
-                        pid = raw
+                    pid = header.split()[0]
                     yield pid, header, "".join(seq_chunks)
 
                 header = line[1:]   # drop leading '>'
