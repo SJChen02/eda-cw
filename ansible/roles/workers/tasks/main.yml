@@ -264,3 +264,15 @@
   args:
     creates: /data/hhdb/pdb70/pdb70_hhm.ffindex
   become: true
+
+  #logs from pipeline
+  
+# --- Ensure application log file exists and is writable ---
+- name: Create protein pipeline log file
+  file:
+    path: /opt/protein_pipeline/protein_pipeline.log
+    state: touch
+    owner: almalinux
+    group: almalinux
+    mode: "0664"
+  become: true

@@ -8,9 +8,15 @@ from pathlib import Path
 from celery import Celery
 import logging
 
+LOG_PATH = os.environ.get(
+    "PIPELINE_LOG",
+    "/opt/protein_pipeline/protein_pipeline.log"
+)
+
 logging.basicConfig(
-    filename='/var/log/protein_pipeline.log',
-    level=logging.INFO
+    filename=LOG_PATH,
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s"
 )
 
 # ---------------------------
