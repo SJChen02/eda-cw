@@ -7,7 +7,7 @@
     # Where your scripts live on the controller (cw-host)
     controller_scripts_dir: "/home/almalinux/eda-cw/distributed"
 
-    # Where to put the script on the host
+    # Where to install them on the host
     host_pipeline_dir: "/opt/protein_pipeline"
 
     # Input FASTA (on the host)
@@ -16,7 +16,7 @@
     # Output DB (on the host)
     db_path: "/data/proteome.db"
 
-    # Script filenames (must exist in controller_scripts_dir)
+    # Script filenames
     builder_script: "build_proteome_sqlite.py"
     store_script: "proteome_store.py"
     lookup_script: "lookup_protein.py"
@@ -72,7 +72,6 @@
         group: almalinux
         mode: "0755"
 
-    # SQLite is in the standard library, but keep this for safety + consistency
     - name: Ensure python3 is installed
       dnf:
         name: python3
@@ -88,9 +87,12 @@
         creates: "{{ db_path }}"
       become_user: almalinux
 
-    - name: Quick sanity check: count rows in DB
-      command: >
-        python3 -c "import sqlite3; c=sqlite3.connect('{{ db_path }}'); print(c.execute('select count(*) from proteins').fetchone()[0]); c.close()"
+    - name: Sanity check DB row count
+      shell: >
+        python3 -c "import sqlite3;
+        c=sqlite3.connect('{{ db_path }}');
+        print(c.execute('select count(*) from proteins').fetchone()[0]);
+        c.close()"
       become_user: almalinux
       register: db_count
 
