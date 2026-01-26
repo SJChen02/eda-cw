@@ -1,0 +1,25 @@
+---
+- name: Remove NFS server from host
+  hosts: host
+  become: true
+  tasks:
+
+    - name: Remove NFS export for proteins
+      lineinfile:
+        path: /etc/exports
+        line: "/data/proteins *(ro,sync,no_subtree_check)"
+        state: absent
+
+    - name: Reload NFS exports
+      command: exportfs -ra
+
+    - name: Stop and disable NFS server
+      systemd:
+        name: nfs-server
+        state: stopped
+        enabled: no
+
+    - name: Remove NFS server package
+      dnf:
+        name: nfs-utils
+        state: absent
