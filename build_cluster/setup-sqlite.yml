@@ -1,0 +1,99 @@
+---
+- name: Setup proteome SQLite data storage on host
+  hosts: host
+  become: true
+
+  vars:
+    # Where your scripts live on the controller (cw-host)
+    controller_scripts_dir: "/home/almalinux/eda-cw/distributed"
+
+    # Where to put the script on the host
+    host_pipeline_dir: "/opt/protein_pipeline"
+
+    # Input FASTA (on the host)
+    fasta_gz_path: "/data/proteins/UP000000589_10090.fasta.gz"
+
+    # Output DB (on the host)
+    db_path: "/data/proteome.db"
+
+    # Script filenames (must exist in controller_scripts_dir)
+    builder_script: "build_proteome_sqlite.py"
+    store_script: "proteome_store.py"
+    lookup_script: "lookup_protein.py"
+
+  tasks:
+    - name: Ensure host pipeline directory exists
+      file:
+        path: "{{ host_pipeline_dir }}"
+        state: directory
+        owner: almalinux
+        group: almalinux
+        mode: "0755"
+
+    - name: Ensure /data exists and is writable
+      file:
+        path: "/data"
+        state: directory
+        owner: almalinux
+        group: almalinux
+        mode: "0775"
+
+    - name: Verify FASTA gz exists on host
+      stat:
+        path: "{{ fasta_gz_path }}"
+      register: fasta_stat
+
+    - name: Fail if FASTA gz not found on host
+      fail:
+        msg: "FASTA gz not found on host at {{ fasta_gz_path }}. Put it there first."
+      when: not fasta_stat.stat.exists
+
+    - name: Copy SQLite builder script to host
+      copy:
+        src: "{{ controller_scripts_dir }}/{{ builder_script }}"
+        dest: "{{ host_pipeline_dir }}/{{ builder_script }}"
+        owner: almalinux
+        group: almalinux
+        mode: "0755"
+
+    - name: Copy proteome_store.py to host
+      copy:
+        src: "{{ controller_scripts_dir }}/{{ store_script }}"
+        dest: "{{ host_pipeline_dir }}/{{ store_script }}"
+        owner: almalinux
+        group: almalinux
+        mode: "0644"
+
+    - name: Copy lookup_protein.py to host (optional helper)
+      copy:
+        src: "{{ controller_scripts_dir }}/{{ lookup_script }}"
+        dest: "{{ host_pipeline_dir }}/{{ lookup_script }}"
+        owner: almalinux
+        group: almalinux
+        mode: "0755"
+
+    # SQLite is in the standard library, but keep this for safety + consistency
+    - name: Ensure python3 is installed
+      dnf:
+        name: python3
+        state: present
+        update_cache: yes
+
+    - name: Build proteome SQLite DB if missing
+      command: >
+        python3 {{ host_pipeline_dir }}/{{ builder_script }}
+        {{ fasta_gz_path }}
+        {{ db_path }}
+      args:
+        creates: "{{ db_path }}"
+      become_user: almalinux
+
+    - name: Quick sanity check: count rows in DB
+      command: >
+        python3 -c "import sqlite3; c=sqlite3.connect('{{ db_path }}'); print(c.execute('select count(*) from proteins').fetchone()[0]); c.close()"
+      become_user: almalinux
+      register: db_count
+
+    - name: Show DB row count
+      debug:
+        msg: "proteome.db row count = {{ db_count.stdout }}"
