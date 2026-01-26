@@ -6,6 +6,12 @@ import shutil
 import subprocess
 from pathlib import Path
 from celery import Celery
+import logging
+
+logging.basicConfig(
+    filename='/var/log/protein_pipeline.log',
+    level=logging.INFO
+)
 
 # ---------------------------
 # Config loading (same idea as your current file)
@@ -114,6 +120,24 @@ def run_one_protein(self, protein_id: str, sequence: str) -> dict:
     # Optional: cleanup workdir to save space (keep if debugging)
     # shutil.rmtree(workdir, ignore_errors=True)
 
+
+    logging.info(f"START protein {protein_id}")
+
+    try:
+        # run s4pred
+        logging.info(f"{protein_id}: S4Pred complete")
+
+        # run HHSearch
+        logging.info(f"{protein_id}: HHSearch complete")
+
+        # parse results
+        logging.info(f"{protein_id}: Parse complete")
+
+    except Exception as e:
+        logging.exception(f"{protein_id}: FAILED with error")
+        raise
+
+
     return {
         "ok": p.returncode == 0,
         "returncode": p.returncode,
@@ -122,3 +146,5 @@ def run_one_protein(self, protein_id: str, sequence: str) -> dict:
         "protein_id": protein_id,
         "results_dir": str(out_dir),
     }
+    
+

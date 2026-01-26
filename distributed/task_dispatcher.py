@@ -3,7 +3,9 @@ import os
 from proteome_store import get_record
 from pipeline_tasks import run_one_protein
 
-IDS_FILE = os.environ.get("IDS_FILE", "experiment_ids.txt")
+# IDS_FILE = os.environ.get("IDS_FILE", "experiment_ids.txt")
+IDS_FILE= "/tmp/ids_test.txt PROTEOME_DB=/data/proteome.db python3 /opt/protein_pipeline/task_dispatcher.py"
+
 DB_PATH = os.environ.get("PROTEOME_DB", "/data/proteome.db")
 
 
